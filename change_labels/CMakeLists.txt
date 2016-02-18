@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 2.8)
+project(Change_Labels)
+find_package(OpenCV REQUIRED)
+add_executable( Change_Labels change_labels.cpp )
+target_link_libraries( Change_Labels ${OpenCV_LIBS} )
