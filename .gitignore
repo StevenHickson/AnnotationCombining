@@ -3,6 +3,7 @@ bin/
 *.zip
 *.mp4
 *.png
+*.un~
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
