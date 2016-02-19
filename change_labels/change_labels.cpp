@@ -40,6 +40,7 @@ int main(int argc, char* argv[]) {
         ann_num = 0;
     else if((start + 22) % 3 == 0)
         ann_num = 1;
+    //printf("ann_num is: %d\n",ann_num);
 
 
     //Now we go through all of the images and update everything
