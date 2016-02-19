@@ -5,7 +5,7 @@
 using namespace std;
 using namespace cv;
 
-int main(int argc, char* argv[]) {
+int global_labels(int start, string video, int num) {
     //First lets read the map.txt
     ifstream fp("/home/steve/cs7616/annotations/map.txt");
     if(fp == NULL) {
@@ -28,13 +28,6 @@ int main(int argc, char* argv[]) {
     }
 
     //Now we need the start num, the video folder, and the number of images
-    if(argc != 4) {
-        printf("ERROR, wrong number of arguments\n");
-        return 1;
-    }
-    int start = atoi(argv[1]);
-    string video = string(argv[2]);
-    int num = atoi(argv[3]);
     int ann_num = 2;
     if(start % 3 == 0)
         ann_num = 0;
@@ -71,6 +64,82 @@ int main(int argc, char* argv[]) {
         char outFile[500];
         sprintf(outFile, "/home/steve/cs7616/annotations/%s/%d_%d.png",video.c_str(),frame_num,ann_num);
         imwrite(outFile,m);
+    }
+    return 0;
+}
+
+int vote_labels(string video, int start, int end) {
+    //For every frame, lets grab the different versions and do per-pixel voting
+    for(int i = start; i <= end; i++) {
+        char fileName[500];
+        sprintf(fileName, "/home/steve/cs7616/annotations/%s/%d_0.png",video.c_str(),i);
+        Mat img0 = imread(fileName,0);
+        sprintf(fileName, "/home/steve/cs7616/annotations/%s/%d_1.png",video.c_str(),i);
+        Mat img1 = imread(fileName,0);
+        sprintf(fileName, "/home/steve/cs7616/annotations/%s/%d_2.png",video.c_str(),i);
+        //printf("Filename: %s\n",fileName);
+        Mat img2 = imread(fileName,0);
+
+        bool use[3] = { !img0.empty(), !img1.empty(), !img2.empty()};
+        //printf("Use: %d, %d, %d\n", (int)use[0], (int)use[1], (int)use[2]);
+        Mat_<uchar>::iterator p0, p1, p2, pF;
+        int rows, cols;
+        if(use[0]) {
+            rows = img0.rows;
+            cols = img0.cols;
+        } else if(use[1]) {
+            rows = img1.rows;
+            cols = img1.cols;
+        } else if(use[2]) {
+            rows = img2.rows;
+            cols = img2.cols;
+        } else {
+            printf("ERROR no images\n");
+            return 1;
+        }
+        if(use[0])
+            p0 = img0.begin<uchar>(); 
+        if(use[1])
+            p1 = img1.begin<uchar>(); 
+        if(use[2])
+            p2 = img2.begin<uchar>(); 
+        Mat out = Mat(rows,cols,CV_8UC1);
+        pF = out.begin<uchar>();
+        while(pF != out.end<uchar>()) {
+            vector<int> counts;
+            counts.resize(20);
+            if(use[0])
+                counts[*p0++]++;
+            if(use[1])
+                counts[*p1++]++;
+            if(use[2])
+                counts[*p2++]++;
+            //One problem with this is the 2 person case. 
+            int result = distance(counts.begin(),max_element(counts.begin(),counts.end())); 
+            *pF++ = result;
+        }
+        char outFile[500];
+        sprintf(outFile, "/home/steve/cs7616/annotations/%s/%d.png",video.c_str(),i);
+        imwrite(outFile,out);
+    }
+}
+
+int main(int argc, char* argv[]) {
+    if(argc != 5) {
+        printf("ERROR, wrong number of arguments\n");
+        return 1;
+    }
+    int method = atoi(argv[1]);
+    if(method == 0) {
+        int start = atoi(argv[2]);
+        string video = string(argv[3]);
+        int num = atoi(argv[4]);
+        return global_labels(start,video,num);
+    } else {
+        int start = atoi(argv[2]);
+        int end = atoi(argv[3]);
+        string video = string(argv[4]);
+        return vote_labels(video,start,end);
     }
     return 0;
 }
