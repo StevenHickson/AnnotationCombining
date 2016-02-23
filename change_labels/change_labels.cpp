@@ -1,9 +1,17 @@
 #include <stdio.h>
 #include <opencv2/opencv.hpp>
 #include <fstream>
+#include "FHSegmentation.h"
 
 using namespace std;
 using namespace cv;
+
+void random_rgb2(cv::Vec3b &c)
+{
+    c[0] = rand() % 255 + 1;
+    c[1] = rand() % 255 + 1;
+    c[2] = rand() % 255 + 1;
+}
 
 int global_labels(int start, string video, int num) {
     //First lets read the map.txt
@@ -119,8 +127,86 @@ int vote_labels(string video, int start, int end) {
             *pF++ = result;
         }
         char outFile[500];
-        sprintf(outFile, "/home/steve/cs7616/annotations/%s/%d.png",video.c_str(),i);
+        sprintf(outFile, "/home/steve/cs7616/annotations/final/%s/%d.png",video.c_str(),i);
         imwrite(outFile,out);
+    }
+}
+
+/*void random_rgb(cv::Vec3b &c)
+{
+    c[0] = rand() % 255 + 1;
+    c[1] = rand() % 255 + 1;
+    c[2] = rand() % 255 + 1;
+}*/
+
+int visualize_labels(string video, int start, int end) {
+    int numSegs = 20;
+    cv::Vec3b *m_colors = (cv::Vec3b *)malloc(numSegs*sizeof(cv::Vec3b));
+    cv::Vec3b *pColor = m_colors;
+    *pColor++ = Vec3b(0,0,0);
+    for (int i = 1; i < numSegs; i++)
+    {
+        cv::Vec3b color;
+        random_rgb2(color);
+        *pColor++ = color;
+    }
+
+    for(int i = start; i <= end; i++) {
+        char fileName[500];
+        sprintf(fileName, "/home/steve/cs7616/annotations/final/%s/%d.png",video.c_str(),i);
+        Mat img = imread(fileName,0);
+
+        Mat out = Mat(img.rows,img.cols,CV_8UC3);
+        Mat_<Vec3b>::iterator pF = out.begin<Vec3b>();
+        Mat_<uchar>::iterator pI = img.begin<uchar>();
+        while(pF != out.end<Vec3b>()) {
+            *pF = m_colors[int(*pI)];
+            ++pF; ++pI;
+        }
+
+        char outFile[500];
+        sprintf(outFile, "/home/steve/cs7616/annotations/visualized/%s/%d.png",video.c_str(),i);
+        imwrite(outFile,out);
+    }
+
+    free(m_colors);
+}
+
+class Features {
+public:
+    int size, imgNum, segNum, label;
+    Rect bbox;
+    Point centroid;
+    Mat b_hist, g_hist, r_hist;
+    Features() : size(0), imgNum(0), segNum(0), centroid(-1,-1) { }
+    ~Features() { }
+};
+
+int create_features(string video, int start, int end) {
+    ofstream fp;
+    fp.open("/home/steve/cs7616/features/features.csv");
+    for(int i = start; i <= end; i++) {
+        char fileName[500];
+        sprintf(fileName, "/home/steve/cs7616/videos/%s/%d.png",video.c_str(),i);
+        Mat img = imread(fileName,0);
+        Mat seg, segDisp;
+        int numSegs = segmentation(img, seg, segDisp, 1.5f, 400, 400, 0);
+        //printf("Numsegs: %d\n", numSegs);
+        //imshow("window",segDisp);
+        //waitKey(0);
+        // Go through each segment and generate features
+        vector<Features> feats;
+        vector<Mat> segmentMasks;
+        feats.resize(numSegs);
+        segmentMasks.resize(numSegs);
+        vector<Moments> mu = moments( seg, false ); }
+        Mat_<uchar>::iterator pS = seg.begin<uchar>();
+        for(int y = 0; y < seg.rows; y++) {
+            for(int x = 0; x < seg.cols; x++) {
+                // Let's start by getting the centroid, size, and bounding box
+                ++pS;
+            }
+        }
     }
 }
 
@@ -135,11 +221,21 @@ int main(int argc, char* argv[]) {
         string video = string(argv[3]);
         int num = atoi(argv[4]);
         return global_labels(start,video,num);
-    } else {
+    } else if(method == 1) {
         int start = atoi(argv[2]);
         int end = atoi(argv[3]);
         string video = string(argv[4]);
         return vote_labels(video,start,end);
+    } else if(method == 2) {
+        int start = atoi(argv[2]);
+        int end = atoi(argv[3]);
+        string video = string(argv[4]);
+        return visualize_labels(video,start,end);
+    } else if(method == 3) {
+        int start = atoi(argv[2]);
+        int end = atoi(argv[3]);
+        string video = string(argv[4]);
+        return create_features(video,start,end);
     }
     return 0;
 }
