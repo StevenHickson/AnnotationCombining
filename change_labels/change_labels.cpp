@@ -258,14 +258,24 @@ public:
 
 int create_features(string video, int start, int end) {
 	ofstream fp;
-	fp.open("D:/Documents/GitHub/AnnotationCombining/data/features.csv", std::ofstream::app);
+	fp.open("/home/steve/cs7616/annotations/features.csv", std::ofstream::app);
 	for (int i = start; i <= end; i++) {
+        if(i % 10 != 0)
+            continue;
 		char fileName[500];
-		sprintf(fileName, "D:/Documents/GitHub/AnnotationCombining/data/videos/%s/%d.png", video.c_str(), i);
+		sprintf(fileName, "/home/steve/cs7616/videos/%s/%d.png", video.c_str(), i);
 		Mat img = imread(fileName);
+        if(img.empty()) {
+            printf("Empty image\n");
+            return 1;
+        }
 		char fileName2[500];
-		sprintf(fileName2, "D:/Documents/GitHub/AnnotationCombining/data/final/%s/%d.png", video.c_str(), i);
+		sprintf(fileName2, "/home/steve/cs7616/annotations/final/%s/%d.png", video.c_str(), i);
 		Mat label = imread(fileName2,0);
+        if(label.empty()) {
+            printf("Empty label\n");
+            return 1;
+        }
 		Mat seg, segDisp;
 		int numSegs = segmentation(img, seg, segDisp, 1.5f, 800, 800, 0);
 		//printf("Numsegs: %d\n", numSegs);
